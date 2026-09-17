@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แบ่งข้อความลง Excel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['"Noto Sans Thai"', 'system-ui', 'sans-serif'] },
+      colors: {
+        brand: { 50:'#f0f4ff', 100:'#dbe4ff', 200:'#bac8ff', 300:'#91a7ff', 400:'#748ffc', 500:'#5c7cfa', 600:'#4c6ef5', 700:'#4263eb', 800:'#3b5bdb', 900:'#364fc7' },
+      },
+    }
+  }
+}
+</script>
+<style>
+:root { color-scheme: light; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+@supports (-webkit-touch-callout: none) { input, textarea { font-size: 16px; } }
+::selection { background: #4263eb; color: #fff; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-once { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@keyframes check-pop { 0% { transform: scale(0.8); opacity:0; } 50% { transform: scale(1.15); } 100% { transform: scale(1); opacity:1; } }
+.anim-fade-up { animation: fadeUp 320ms cubic-bezier(.16,1,.3,1) both; }
+.anim-pulse { animation: pulse-once 280ms ease-out; }
+.anim-check { animation: check-pop 350ms cubic-bezier(.34,1.56,.64,1) both; }
+
+.glass-card {
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03);
+}
+
+textarea:focus { box-shadow: 0 0 0 3px rgba(76,110,245,0.15); }
+input[type=number]:focus { box-shadow: 0 0 0 3px rgba(76,110,245,0.15); }
+
+.row-hover { transition: background 120ms ease; }
+.row-hover:hover { background: #f8f9ff; }
+
+/* Hide number spinner */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+.preset-btn {
+  transition: all 150ms ease;
+  border: 1.5px solid #ddd;
+  border-radius: 9999px;
+  padding: 5px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+.preset-btn:hover { border-color: #4c6ef5; color: #4c6ef5; }
+.preset-btn.active { background: #4c6ef5; color: #fff; border-color: #4c6ef5; }
+
+.copy-btn {
+  background: linear-gradient(135deg, #4c6ef5 0%, #3b5bdb 100%);
+  box-shadow: 0 2px 8px rgba(76,110,245,0.3), 0 1px 2px rgba(0,0,0,0.06);
+  transition: all 180ms ease;
+}
+.copy-btn:hover { box-shadow: 0 4px 16px rgba(76,110,245,0.4); transform: translateY(-1px); }
+.copy-btn:active { transform: translateY(0); }
+.copy-btn:disabled { background: #cbd5e1; box-shadow: none; transform: none; cursor: not-allowed; }
+
+.copy-btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.35) !important;
+}
+
+.disclosure-toggle { cursor: pointer; user-select: none; }
+.disclosure-toggle .chevron { transition: transform 200ms ease; display: inline-block; }
+.disclosure-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+.badge { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+.badge-warn { background: #fff3cd; color: #92600a; }
+.badge-danger { background: #ffe0e0; color: #b91c1c; }
+</style>
+</head>
+<body class="bg-[#f6f7fb] text-slate-800 font-sans min-h-dvh">
+
+<div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+
+  <!-- Header -->
+  <header class="mb-7">
+    <div class="flex items-center gap-2.5">
+      <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-600 text-white text-lg font-bold shadow-sm shadow-brand-600/20">⊞</div>
+      <h1 class="text-[22px] font-bold tracking-tight sm:text-[26px] text-slate-900">แบ่งข้อความลง Excel</h1>
+    </div>
+    <p class="mt-2.5 text-[15px] leading-relaxed text-slate-500 max-w-2xl">
+      วางข้อความยาว → ระบบแบ่งให้อัตโนมัติ → คัดลอกไปวาง Excel ได้ทันที
+    </p>
+    <p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 border border-emerald-100">
+      <svg width="12" height="12" fill="none" viewBox="0 0 16 16"><path d="M8 1a5 5 0 0 0-5 5v2.5a1.5 1.5 0 0 0-1.5 1.5v4A1.5 1.5 0 0 0 3 15.5h10a1.5 1.5 0 0 0 1.5-1.5v-4A1.5 1.5 0 0 0 13 8.5V6a5 5 0 0 0-5-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="12" r="1.2" fill="currentColor"/></svg>
+      ประมวลผลในเบราว์เซอร์ ไม่ส่งข้อมูลออก
+    </p>
+  </header>
+
+  <!-- Segmenter warning -->
+  <div id="segWarn" class="hidden mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
+    เบราว์เซอร์นี้ไม่รองรับ <code class="rounded bg-amber-100 px-1 text-xs">Intl.Segmenter</code>
+    — ระบบจะใช้วิธีสำรองแทน ผลลัพธ์ใช้ได้ปกติ แนะนำ Chrome/Edge/Safari รุ่นใหม่
+  </div>
+
+  <!-- Main card -->
+  <div class="glass-card rounded-2xl p-5 sm:p-7">
+
+    <!-- Textarea -->
+    <div class="flex items-baseline justify-between mb-2">
+      <label for="src" class="text-sm font-semibold text-slate-700">ข้อความต้นฉบับ</label>
+      <button type="button" onclick="useSample()" class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">ใส่ตัวอย่าง</button>
+    </div>
+    <textarea id="src" rows="7" spellcheck="false"
+      placeholder="วางข้อความยาวที่นี่... ระบบจะแบ่งให้อัตโนมัติ"
+      class="w-full resize-y rounded-xl border border-slate-200 bg-white p-4 text-[15px] leading-[1.8] outline-none transition placeholder:text-slate-300 focus:border-brand-400"></textarea>
+    <div class="flex items-center justify-between mt-1.5 px-0.5">
+      <p id="charInfo" class="text-xs tabular-nums text-slate-400">0 ตัวอักษร</p>
+      <p class="text-[11px] text-slate-300">Ctrl+Enter เพื่อแบ่ง</p>
+    </div>
+
+    <!-- Compact settings bar -->
+    <div class="mt-5 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-1.5" id="presetBar"></div>
+      <div class="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+        <input id="maxLen" type="number" inputmode="numeric" min="5" max="1000" value="40"
+          class="w-16 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-center tabular-nums outline-none transition focus:border-brand-400 bg-white">
+        <span class="text-xs text-slate-400">ตัวอักษร/แถว</span>
+      </div>
+      <label class="flex items-center gap-1.5 cursor-pointer ml-auto select-none">
+        <input type="checkbox" id="wordBound" checked class="h-3.5 w-3.5 accent-brand-600 rounded">
+        <span class="text-xs font-medium text-slate-600">ไม่ตัดกลางคำ</span>
+      </label>
+    </div>
+
+    <!-- Advanced disclosure -->
+    <div class="mt-3">
+      <button type="button" class="disclosure-toggle flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition" aria-expanded="false" onclick="toggleAdvanced(this)">
+        <span class="chevron text-[10px]">▼</span> ตั้งค่าขั้นสูง
+      </button>
+      <div id="advancedPanel" class="hidden mt-3 pl-1 space-y-2">
+        <label class="flex items-center gap-2.5 cursor-pointer">
+          <input type="radio" name="mode" value="preserve" checked class="h-3.5 w-3.5 accent-brand-600">
+          <span class="text-sm text-slate-700"><span class="font-medium">รักษาคำให้สมบูรณ์</span> <span class="text-slate-400">— ยอมให้ยาวเกินเล็กน้อย</span></span>
+        </label>
+        <label class="flex items-center gap-2.5 cursor-pointer">
+          <input type="radio" name="mode" value="strict" class="h-3.5 w-3.5 accent-brand-600">
+          <span class="text-sm text-slate-700"><span class="font-medium">จำกัดเคร่งครัด</span> <span class="text-slate-400">— ทุกแถวไม่เกินค่าที่ตั้ง</span></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="mt-5 flex items-center gap-3">
+      <button type="button" onclick="doSplit()" id="btnSplit"
+        class="rounded-xl bg-slate-800 px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed" disabled>
+        แบ่งข้อความ
+      </button>
+      <button type="button" onclick="resetAll()"
+        class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-500 transition hover:border-slate-400 hover:text-slate-700">
+        เริ่มใหม่
+      </button>
+    </div>
+  </div>
+
+  <!-- Result section -->
+  <section id="resSection" class="hidden mt-5">
+    <div class="glass-card rounded-2xl p-5 sm:p-7 anim-fade-up">
+
+      <!-- Copy bar -->
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="button" onclick="copyAll()" id="btnCopy"
+          class="copy-btn rounded-xl px-7 py-3 text-sm font-bold text-white flex items-center gap-2">
+          <svg id="copyIcon" width="16" height="16" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10.5V3a1.5 1.5 0 0 1 1.5-1.5H10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span id="copyText">คัดลอกเพื่อวางใน Excel</span>
+        </button>
+        <button type="button" onclick="dlCsv()" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-500 transition hover:border-slate-400 hover:text-slate-700">.csv</button>
+        <button type="button" onclick="dlTxt()" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-500 transition hover:border-slate-400 hover:text-slate-700">.txt</button>
+        <p id="statLine" class="ml-auto text-xs tabular-nums text-slate-400"></p>
+      </div>
+
+      <!-- Copy feedback -->
+      <div id="copyFeedback" aria-live="polite" class="mt-3 empty:mt-0"></div>
+
+      <!-- Warnings -->
+      <div id="warns" class="hidden mt-3 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-2.5 text-xs leading-relaxed text-amber-700"></div>
+
+      <!-- Table / Raw toggle -->
+      <div class="mt-5 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-600">ผลลัพธ์</h3>
+        <button type="button" onclick="toggleRaw()" id="btnRaw" class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">ดูข้อความดิบ</button>
+      </div>
+
+      <div id="tableBox" class="mt-3"></div>
+      <textarea id="rawBox" class="hidden mt-3 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-relaxed" readonly></textarea>
+
+      <p class="mt-4 text-[11px] leading-relaxed text-slate-400">
+        ใน Excel คลิกเซลล์แล้ววาง — แต่ละบรรทัดจะลงเป็น 1 แถวในคอลัมน์เดียว ·
+        ระบบแปลง Tab เป็นช่องว่างให้แล้ว ไม่แตกคอลัมน์
+      </p>
+    </div>
+  </section>
+
+  <footer class="mt-10 space-y-1 text-center text-[11px] text-slate-400">
+    <p>สร้างโดย <span class="text-slate-500 font-medium">วุฒสิต จารุกลัส</span> · รพ.สต.ร่มโพธิ์ สมุทรปราการ · พ.ศ. 2569</p>
+    <p>ใช้ <code class="rounded bg-slate-100 px-1 py-0.5 text-[10px]">Intl.Segmenter</code> ตัดคำไทย · ไม่เก็บข้อความ · เก็บเฉพาะค่าตั้งค่าไว้ในเครื่อง</p>
+  </footer>
+</div>
+
+<script>
+// ===================== SEGMENTER (ไม่เปลี่ยน logic) =====================
+const COMBINING=/[\p{M}\u200d\ufe0f\u0e31\u0e34-\u0e3a\u0e47-\u0e4e]/u,NO_BREAK_BEFORE=/^[\u0e31\u0e33-\u0e3a\u0e46-\u0e4e\u0e2f\u200d\ufe0f\p{M}]/u,NO_BREAK_AFTER=/[\u0e40-\u0e44]$/u,WS=/^\s+$/u;
+function segOk(){try{return typeof Intl!=='undefined'&&typeof Intl.Segmenter==='function'}catch{return false}}
+let _ws,_gs;
+function wSeg(){if(_ws!==undefined)return _ws;try{_ws=segOk()?new Intl.Segmenter('th',{granularity:'word'}):null}catch{_ws=null}return _ws}
+function gSeg(){if(_gs!==undefined)return _gs;try{_gs=segOk()?new Intl.Segmenter('th',{granularity:'grapheme'}):null}catch{_gs=null}return _gs}
+function toG(t){if(!t)return[];const s=gSeg();if(s)return Array.from(s.segment(t),x=>x.segment);const c=Array.from(t),o=[];for(let i=0;i<c.length;i++){const p=i>0?c[i-1]:'';if(o.length>0&&(COMBINING.test(c[i])||p==='\u200d'))o[o.length-1]+=c[i];else o.push(c[i])}return o}
+function measure(t){return toG(t).length}
+function hardWrap(t,sz){const g=toG(t),st=Math.max(1,Math.floor(sz)),o=[];let s=0;while(s<g.length){let e=Math.min(s+st,g.length);if(e<g.length){let a=e,gu=0;while(a>s+1&&gu<4&&(NO_BREAK_AFTER.test(g[a-1])||NO_BREAK_BEFORE.test(g[a]))){a--;gu++}if(a>s)e=a}o.push(g.slice(s,e).join(''));s=e}return o}
+function segWords(t){const s=wSeg();if(!s)return null;return Array.from(s.segment(t),x=>x.segment).filter(Boolean)}
+const FBT=/\s+|[0-9]+(?:[.,][0-9]+)*|[A-Za-z]+(?:'[A-Za-z]+)*|[\u0e00-\u0e7f]+|[\s\S]/gu;
+function splitThaiH(r){const g=toG(r),o=[];let c='';for(let i=0;i<g.length;i++){const ch=g[i];if(c&&/^[\u0e40-\u0e44]/u.test(ch)&&!NO_BREAK_AFTER.test(c)){o.push(c);c=''}c+=ch;const n=g[i+1];if(n&&/[\u0e30\u0e33\u0e46\u0e2f]$/u.test(c)&&!NO_BREAK_BEFORE.test(n)){o.push(c);c=''}}if(c)o.push(c);return o}
+function fbAtoms(t){const r=t.match(FBT)??[],o=[];for(const tk of r){if(/^[\u0e00-\u0e7f]+$/u.test(tk)&&tk.length>2)o.push(...splitThaiH(tk));else o.push(tk)}return o}
+function toAtoms(t){const w=segWords(t);if(w&&w.length>0)return w;return fbAtoms(t)}
+
+// ===================== SPLIT TEXT (ไม่เปลี่ยน logic) =====================
+const DMAX=40,NMIN=5,NMAX=1000,PRI={WORD:1,SPACE:2,PUNCT:3,SENT:4,END:5};
+const SC=/[.!?…。！？]/u,PC=/[,:;\/\\|、，\u2013\u2014-]/u,AB=/^[.,!?…:;)\]}»"'"'%\/\\|、。，！？\u2013\u2014-]/u,OE=/[([{«"'"']$/u,SE=/[.!?…。！？]$/u,WOS=/^[\p{L}\p{N}]/u;
+function clean(s){if(!s)return'';return s.replace(/\r\n?/g,'\n').replace(/[\t\u00a0\u2007\u202f]/g,' ').replace(/[\u200b-\u200c\ufeff]/g,'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').split('\n').map(l=>l.replace(/\s+/g,' ').trim()).join('\n').replace(/\n{3,}/g,'\n\n').trim()}
+function priOf(b,ws){const t=b.replace(/\s+$/u,''),l=t.slice(-1);if(SC.test(l))return PRI.SENT;if(PC.test(l))return PRI.PUNCT;return ws?PRI.SPACE:PRI.WORD}
+function mkCh(t,p){const g=toG(t);let tr=0;while(tr<g.length&&WS.test(g[g.length-1-tr]))tr++;return{text:t,len:g.length,trail:tr,priority:p}}
+function buildCh(blk){const at=toAtoms(blk),ch=[];let buf='';for(let i=0;i<at.length;i++){buf+=at[i];const nx=at[i+1];if(nx===undefined)break;const iw=WS.test(at[i]),nw=WS.test(nx);let cb;if(iw)cb=!nw;else if(nw)cb=false;else if(AB.test(nx))cb=false;else if(OE.test(buf))cb=false;else if(SE.test(buf)&&WOS.test(nx))cb=false;else cb=true;if(!cb)continue;ch.push(mkCh(buf,priOf(buf,iw)));buf=''}if(buf)ch.push(mkCh(buf,PRI.END));return ch}
+function breakOver(raw,ctx){const t=raw.trim();if(!t)return[];const l=measure(t);if(l<=ctx.max)return[{text:t,hard:false,overflow:false}];if(!ctx.strict&&l<=Math.ceil(ctx.max*ctx.tol))return[{text:t,hard:false,overflow:true}];return hardWrap(t,ctx.max).map(x=>x.trim()).filter(x=>x.length>0).map(x=>({text:x,hard:true,overflow:measure(x)>ctx.max}))}
+function pack(ch,ctx){const n=ch.length;if(!n)return[];const pf=new Array(n+1).fill(0);for(let k=0;k<n;k++)pf[k+1]=pf[k]+ch[k].len;const ll=(i,j)=>pf[j+1]-pf[i]-ch[j].trail;const mf=Math.max(1,Math.floor(ctx.max*ctx.fr));const o=[];let i=0;while(i<n){if(ll(i,i)>ctx.max){o.push(...breakOver(ch[i].text,ctx));i++;continue}let lf=i,b=-1,bp=-1;for(let j=i;j<n;j++){const l=ll(i,j);if(l>ctx.max)break;lf=j;if(l>=mf&&ch[j].priority>=bp){b=j;bp=ch[j].priority}}const cut=b>=0?b:lf;let t='';for(let k=i;k<=cut;k++)t+=ch[k].text;t=t.trim();if(t)o.push({text:t,hard:false,overflow:false});i=cut+1}return o}
+function splitText(input,opts={}){const rm=Number(opts.maxLength??DMAX);const max=Math.min(NMAX,Math.max(1,Math.floor(Number.isFinite(rm)?rm:DMAX)));const pwb=opts.preferWordBoundary??true;const ctx={max,strict:opts.strict??false,tol:Math.max(1,opts.overflowTolerance??1.5),fr:Math.min(0.95,Math.max(0.1,opts.fillRatio??0.6))};const cl=clean(input);const pcs=[];if(cl){for(const blk of cl.split('\n')){const b=blk.trim();if(!b)continue;if(measure(b)<=max){pcs.push({text:b,hard:false,overflow:false});continue}if(!pwb){for(const t of hardWrap(b,max)){const s=t.trim();if(s)pcs.push({text:s,hard:false,overflow:false})}continue}pcs.push(...pack(buildCh(b),ctx))}}const lines=pcs.map((p,i)=>{const l=measure(p.text);return{index:i+1,text:p.text,length:l,charLength:p.text.length,overflow:p.overflow||l>max,hardBreak:p.hard}});const lens=lines.map(l=>l.length);const tc=lens.reduce((a,b)=>a+b,0);return{lines,totalLines:lines.length,totalChars:tc,longest:lens.length?Math.max(...lens):0,shortest:lens.length?Math.min(...lens):0,average:lens.length?Math.round(tc/lines.length):0,maxLength:max,overflowCount:lines.filter(l=>l.overflow).length,hardBreakCount:lines.filter(l=>l.hardBreak).length,hasOverflow:lines.some(l=>l.overflow),hasHardBreak:lines.some(l=>l.hardBreak),segmenterSupported:segOk()}}
+
+// ===================== UTILS =====================
+async function clipCopy(t){if(!t)return false;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);return true}}catch{}try{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:-9999px;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,ta.value.length);const ok=document.execCommand('copy');document.body.removeChild(ta);return ok}catch{return false}}
+function escCsv(v){return'"'+v.replace(/"/g,'""')+'"'}
+function toCsv(ls){const h=['ลำดับ','ข้อความ','จำนวนตัวอักษร'].map(escCsv).join(',');const b=ls.map(l=>[escCsv(String(l.index)),escCsv(l.text),escCsv(String(l.length))].join(','));return[h,...b].join('\r\n')}
+function stamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`}
+function saveF(fn,ct,mime){const b=new Blob(['\uFEFF'+ct],{type:mime});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escJ(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n').replace(/\r/g,'')}
+
+// ===================== STORAGE =====================
+const SK='split-to-excel:settings:v2';
+function loadS(){try{const r=localStorage.getItem(SK);if(!r)return null;const p=JSON.parse(r);const l=Number(p.maxLength);return{maxLength:Number.isFinite(l)&&l>=NMIN&&l<=NMAX?Math.floor(l):DMAX,preferWordBoundary:typeof p.preferWordBoundary==='boolean'?p.preferWordBoundary:true,strict:typeof p.strict==='boolean'?p.strict:false}}catch{return null}}
+function saveS(s){try{localStorage.setItem(SK,JSON.stringify(s))}catch{}}
+
+// ===================== SAMPLE =====================
+const SAMPLE=`การเขียนโปรแกรมคอมพิวเตอร์เป็นทักษะที่สำคัญมากในยุคปัจจุบัน เพราะช่วยให้เราแก้ปัญหาได้อย่างเป็นระบบและสร้างเครื่องมือที่ช่วยประหยัดเวลาในการทำงานประจำวันได้จริง\nทีมงานเลือกใช้ Next.js 14, TypeScript และ Tailwind CSS ในการพัฒนา โดยเน้นให้หน้าเว็บโหลดเร็วและใช้งานง่ายทั้งบนเดสก์ท็อปและมือถือ\nรายละเอียดเพิ่มเติมดูได้ที่ https://example.com/documentation/getting-started/installation-guide`;
+
+// ===================== STATE =====================
+let result=null,hasRun=false,showRaw=false,debTimer=null,copyTimer=null;
+const $=id=>document.getElementById(id);
+
+function getOpts(){return{maxLength:Math.min(NMAX,Math.max(NMIN,Math.floor(Number($('maxLen').value)||DMAX))),preferWordBoundary:$('wordBound').checked,strict:document.querySelector('input[name="mode"][value="strict"]')?.checked??false}}
+
+// ===================== UI =====================
+function updateInfo(){const t=$('src').value;$('charInfo').textContent=`${t.length.toLocaleString('th-TH')} ตัวอักษร`;$('btnSplit').disabled=!t.trim()}
+
+const PRESETS=[30,40,50,60];
+function renderPresets(){const v=Number($('maxLen').value)||DMAX;$('presetBar').innerHTML=PRESETS.map(p=>`<button type="button" onclick="setP(${p})" class="preset-btn ${v===p?'active':''}">${p}</button>`).join('')}
+function setP(v){$('maxLen').value=v;renderPresets();onChange()}
+
+function toggleAdvanced(btn){const exp=btn.getAttribute('aria-expanded')==='true';btn.setAttribute('aria-expanded',String(!exp));$('advancedPanel').classList.toggle('hidden')}
+
+function onChange(){const o=getOpts();saveS(o);renderPresets();if(hasRun||$('src').value.trim()){clearTimeout(debTimer);debTimer=setTimeout(()=>{result=splitText($('src').value,o);hasRun=true;render()},250)}}
+
+function doSplit(){const t=$('src').value;if(!t.trim())return;result=splitText(t,getOpts());hasRun=true;render();$('resSection').scrollIntoView({behavior:'smooth',block:'nearest'})}
+
+function resetAll(){$('src').value='';result=null;hasRun=false;showRaw=false;updateInfo();$('resSection').classList.add('hidden')}
+
+function useSample(){$('src').value=SAMPLE;updateInfo();onChange()}
+
+function toggleRaw(){showRaw=!showRaw;$('btnRaw').textContent=showRaw?'ดูแบบตาราง':'ดูข้อความดิบ';renderView()}
+
+async function copyAll(){if(!result||!result.totalLines)return;const payload=result.lines.map(l=>l.text).join('\n');const ok=await clipCopy(payload);const btn=$('btnCopy'),txt=$('copyText'),ico=$('copyIcon');if(ok){btn.classList.add('copy-btn-success','anim-pulse');txt.textContent='✓ คัดลอกแล้ว — วางใน Excel ได้เลย';ico.innerHTML='<path d="M3 8.5l3.5 3.5 6.5-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';clearTimeout(copyTimer);copyTimer=setTimeout(()=>{btn.classList.remove('copy-btn-success','anim-pulse');txt.textContent='คัดลอกเพื่อวางใน Excel';ico.innerHTML='<rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 10.5V3a1.5 1.5 0 0 1 1.5-1.5H10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';},4000)}else{$('copyFeedback').innerHTML='<p class="rounded-lg bg-rose-50 border border-rose-100 px-3 py-2 text-xs font-medium text-rose-700 anim-fade-up">คัดลอกไม่สำเร็จ — ลองกด "ดูข้อความดิบ" แล้วเลือกคัดลอกเอง</p>';setTimeout(()=>{$('copyFeedback').innerHTML=''},5000)}}
+
+async function copyRow(idx,text){const ok=await clipCopy(text);if(!ok)return;const btn=document.querySelector(`[data-r="${idx}"]`);if(btn){btn.innerHTML='<span class="anim-check inline-block text-emerald-500">✓</span>';setTimeout(()=>{btn.textContent='⧉'},1800)}}
+
+function dlCsv(){if(!result)return;saveF(`แบ่งข้อความ-${stamp()}.csv`,toCsv(result.lines),'text/csv;charset=utf-8;')}
+function dlTxt(){if(!result)return;saveF(`แบ่งข้อความ-${stamp()}.txt`,result.lines.map(l=>l.text).join('\r\n'),'text/plain;charset=utf-8;')}
+
+function render(){if(!result)return;const r=result;$('resSection').classList.remove('hidden');
+$('statLine').innerHTML=`<span class="text-slate-600 font-semibold">${r.totalLines}</span> แถว · ยาวสุด <span class="text-slate-600 font-semibold">${r.longest}</span> · เฉลี่ย ${r.average}`;
+$('copyFeedback').innerHTML='';
+const w=$('warns');
+if(r.hasOverflow||r.hasHardBreak){w.classList.remove('hidden');let h='';if(r.hasOverflow)h+=`${r.overflowCount} แถวยาวเกิน เพื่อรักษาคำ`;if(r.hasOverflow&&r.hasHardBreak)h+=' · ';if(r.hasHardBreak)h+=`${r.hardBreakCount} แถวตัดตามอักขระ`;w.textContent=h}else w.classList.add('hidden');
+renderView()}
+
+function renderView(){if(!result)return;const r=result;const payload=r.lines.map(l=>l.text).join('\n');
+if(!r.totalLines){$('tableBox').innerHTML='<p class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-400">ไม่มีข้อความให้แบ่ง</p>';$('tableBox').classList.remove('hidden');$('rawBox').classList.add('hidden');return}
+if(showRaw){$('tableBox').classList.add('hidden');const rv=$('rawBox');rv.classList.remove('hidden');rv.value=payload;rv.rows=Math.min(16,Math.max(4,r.totalLines))}else{$('rawBox').classList.add('hidden');$('tableBox').classList.remove('hidden');
+$('tableBox').innerHTML=`<div class="overflow-hidden rounded-xl border border-slate-200"><div class="max-h-[420px] overflow-auto"><table class="w-full border-collapse text-sm"><thead class="sticky top-0 z-10 bg-slate-50/90 backdrop-blur text-left text-slate-500"><tr><th class="w-12 px-3 py-2.5 font-medium text-xs">#</th><th class="px-3 py-2.5 font-medium text-xs">ข้อความ</th><th class="w-16 px-3 py-2.5 text-right font-medium text-xs">ความยาว</th><th class="w-10 px-2 py-2.5"></th></tr></thead><tbody>${r.lines.map(l=>{let badge='';if(l.hardBreak)badge=' <span class="badge badge-danger ml-1.5">ตัดอักขระ</span>';else if(l.overflow)badge=' <span class="badge badge-warn ml-1.5">เกินกำหนด</span>';const lc=l.overflow?'font-semibold text-amber-600':'text-slate-400';return`<tr class="border-t border-slate-100 align-top row-hover"><td class="px-3 py-2 tabular-nums text-slate-300 text-xs">${l.index}</td><td class="px-3 py-2 leading-relaxed text-slate-700"><span class="whitespace-pre-wrap break-words">${escH(l.text)}</span>${badge}</td><td class="px-3 py-2 text-right tabular-nums text-xs ${lc}">${l.length}</td><td class="px-2 py-2 text-right"><button type="button" data-r="${l.index}" onclick="copyRow(${l.index},'${escJ(l.text)}')" aria-label="คัดลอกแถว ${l.index}" class="rounded-md p-1.5 text-slate-300 transition hover:bg-slate-100 hover:text-slate-600"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 10.5V3a1.5 1.5 0 0 1 1.5-1.5H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button></td></tr>`}).join('')}</tbody></table></div></div>`}}
+
+// ===================== INIT =====================
+function init(){
+if(!segOk())$('segWarn').classList.remove('hidden');
+const sv=loadS();if(sv){$('maxLen').value=sv.maxLength;$('wordBound').checked=sv.preferWordBoundary;if(sv.strict){const el=document.querySelector('input[name="mode"][value="strict"]');if(el)el.checked=true}}
+renderPresets();updateInfo();
+$('src').addEventListener('input',()=>{updateInfo();onChange()});
+$('src').addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();doSplit()}});
+$('maxLen').addEventListener('input',onChange);
+$('wordBound').addEventListener('change',onChange);
+document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',onChange));
+}
+init();
+</script>
+</body>
+</html>
